@@ -70,12 +70,12 @@ module SimpleCaptcha #:nodoc
         if need_distortion?
           amplitude, frequency = ImageHelpers.distortion(SimpleCaptcha.distortion)
           params << "-wave #{amplitude}x#{frequency}"
+          params << "-implode 0.2"
         end
-        
+
         #params << "-gravity 'Center'"
         params << "-gravity \"Center\""
         params << "-pointsize #{SimpleCaptcha.point_size}"
-        params << "-implode 0.2"
 
         dst = Tempfile.new(RUBY_VERSION < '1.9' ? 'simple_captcha.jpg' : ['simple_captcha', '.jpg'], SimpleCaptcha.tmp_path)
         dst.binmode
