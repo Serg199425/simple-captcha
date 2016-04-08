@@ -14,7 +14,7 @@ module SimpleCaptcha #:nodoc
       'almost_invisible' => ['-fill red', '-solarize 50', '-background white']
     }
 
-    DISTORTIONS = ['low', 'medium', 'high']
+    DISTORTIONS = ['low', 'medium', 'high', 'none']
 
     class << self
 
@@ -57,13 +57,21 @@ module SimpleCaptcha #:nodoc
 
     private
 
+      def need_distortion?
+        SimpleCaptcha.distortion != 'none'
+      end
+
       def generate_simple_captcha_image(simple_captcha_key) #:nodoc
-        amplitude, frequency = ImageHelpers.distortion(SimpleCaptcha.distortion)
         text = Utils::simple_captcha_value(simple_captcha_key)
 
         params = ImageHelpers.image_params(SimpleCaptcha.image_style).dup
         params << "-size #{SimpleCaptcha.image_size}"
-        params << "-wave #{amplitude}x#{frequency}"
+
+        if need_distortion?
+          amplitude, frequency = ImageHelpers.distortion(SimpleCaptcha.distortion)
+          params << "-wave #{amplitude}x#{frequency}"
+        end
+        
         #params << "-gravity 'Center'"
         params << "-gravity \"Center\""
         params << "-pointsize #{SimpleCaptcha.point_size}"
