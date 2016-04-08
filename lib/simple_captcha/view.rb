@@ -101,14 +101,10 @@ module SimpleCaptcha #:nodoc
 
       def generate_simple_captcha_data(code)
         value = ''
-
-        case code
-          when 'numeric' then
-            SimpleCaptcha.length.times{value << (48 + rand(10)).chr}
-          else
-            SimpleCaptcha.length.times{value << (65 + rand(26)).chr}
-        end
-
+        value << (65 + rand(26)).chr
+        3.times { value << (48 + rand(10)).chr }
+        2.times { value << (65 + rand(26)).chr }
+        value << (48 + rand(10)).chr
         return value
       end
 
