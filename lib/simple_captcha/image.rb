@@ -11,7 +11,8 @@ module SimpleCaptcha #:nodoc
       'distorted_black' => ['-fill darkblue', '-edge 10', '-background white'],
       'all_black'       => ['-fill darkblue', '-edge 2', '-background white'],
       'charcoal_grey'   => ['-fill darkblue', '-charcoal 5', '-background white'],
-      'almost_invisible' => ['-fill red', '-solarize 50', '-background white']
+      'almost_invisible' => ['-fill red', '-solarize 50', '-background white'],
+      'simply_black' => ['-fill "rgba(0,0,0,0.5)"', '-background white', '-stroke "rgba(0,0,0,0.1)" -strokewidth 3']
     }
 
     DISTORTIONS = ['low', 'medium', 'high', 'none']
@@ -64,6 +65,8 @@ module SimpleCaptcha #:nodoc
       def generate_simple_captcha_image(simple_captcha_key) #:nodoc
         text = Utils::simple_captcha_value(simple_captcha_key)
 
+        text = prepare_text(text)
+
         params = ImageHelpers.image_params(SimpleCaptcha.image_style).dup
         params << "-size #{SimpleCaptcha.image_size}"
 
@@ -73,7 +76,6 @@ module SimpleCaptcha #:nodoc
           params << "-implode 0.2"
         end
 
-        #params << "-gravity 'Center'"
         params << "-gravity \"Center\""
         params << "-pointsize #{SimpleCaptcha.point_size}"
 
@@ -81,7 +83,7 @@ module SimpleCaptcha #:nodoc
         dst.binmode
 
         #params << "label:#{text} '#{File.expand_path(dst.path)}'"
-        params << "label:#{text} \"#{File.expand_path(dst.path)}\""
+        params << "label:'#{text}' \"#{File.expand_path(dst.path)}\""
 
         SimpleCaptcha::Utils::run("convert", params.join(' '))
 
@@ -89,6 +91,12 @@ module SimpleCaptcha #:nodoc
 
         File.expand_path(dst.path)
         #dst
+      end
+
+      def prepare_text(text)
+        insert_positions = [1,5,7]
+        insert_positions.each { |position| text.insert(position, ' ')}
+        text
       end
   end
 end
