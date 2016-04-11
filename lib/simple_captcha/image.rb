@@ -12,7 +12,7 @@ module SimpleCaptcha #:nodoc
       'all_black'       => ['-fill darkblue', '-edge 2', '-background white'],
       'charcoal_grey'   => ['-fill darkblue', '-charcoal 5', '-background white'],
       'almost_invisible' => ['-fill red', '-solarize 50', '-background white'],
-      'simply_black' => ['-fill "rgba(0,0,0,0.5)"', '-background white', '-stroke "rgba(0,0,0,0.1)" -strokewidth 3']
+      'simply_black' => ['-fill "rgba(0,0,0,0.5)"', '-background white', '-stroke "rgba(0,0,0,0.22)" -strokewidth 5', '-font sans-serif']
     }
 
     DISTORTIONS = ['low', 'medium', 'high', 'none']

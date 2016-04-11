@@ -42,51 +42,84 @@ module SimpleCaptcha #:nodoc
     # Find more detailed examples with sample images here on my blog http://EXPRESSICA.com
     #
     # All Feedbacks/CommentS/Issues/Queries are welcome.
-    def show_simple_captcha(options={})
-      key = simple_captcha_key(options[:object])
-      options[:field_value] = set_simple_captcha_data(key, options)
-
-      defaults = {
-         :image => simple_captcha_image(key, options),
-         :label => options[:label] || I18n.t('simple_captcha.label'),
-         :field => simple_captcha_field(options)
-         }
-
-      render :partial => 'simple_captcha/simple_captcha', :locals => { :simple_captcha_options => defaults }
+    def show_simple_captcha(options = {})
+      render :partial => SimpleCaptcha.partial_path, :locals => { :simple_captcha_options => simple_captcha_options(options) }
     end
 
-    def generate_simple_captcha_image(options={})
+    def simple_captcha_options(options = {})
       key = simple_captcha_key(options[:object])
-      options[:field_value] = set_simple_captcha_data(key, options)
-      simple_captcha_image(key, options)
+      if options[:multiple] === false
+        # It's not the first captcha, we only need to return the key
+        options[:field_value] = key
+      else
+        # It's the first captcha in the page, we generate a new key
+        options[:field_value] = set_simple_captcha_data(key, options)
+      end
+
+      defaults = {
+        :image => simple_captcha_image(key, options),
+        :label => I18n.t('simple_captcha.label'),
+        :field => simple_captcha_field(options),
+        :refresh_button => simple_captcha_refresh_button(options),
+      }.merge(options)
     end
 
     private
 
       def simple_captcha_image(simple_captcha_key, options = {})
+        url = simple_captcha_image_url simple_captcha_key, options: options
+        id = simple_captcha_image_id(options)
+        tag('img', :src => url, :alt => 'captcha', :id => id)
+      end
+
+      def simple_captcha_image_url(simple_captcha_key, options = {})
         defaults = {}
         defaults[:time] = options[:time] || Time.now.to_i
 
-        query = defaults.collect{ |key, value| "#{key}=#{value}" }.join('&')
-        url = "#{ENV['RAILS_RELATIVE_URL_ROOT']}/simple_captcha?code=#{simple_captcha_key}&#{query}"
-        if options[:object]
-          hidden_captcha_key = hidden_field(options[:object], :captcha_key, :value => options[:field_value])
+        query = defaults.to_query
+        path = "/simple_captcha?code=#{simple_captcha_key}&#{query}"
+        build_url(options, path)
+      end
+
+      def build_url(options, path)
+        if defined?(request) && request
+          "#{request.protocol}#{request.host_with_port}#{ENV['RAILS_RELATIVE_URL_ROOT']}#{path}"
         else
-          hidden_captcha_key = hidden_field_tag(:captcha_key, options[:field_value])
+          "#{ENV['RAILS_RELATIVE_URL_ROOT']}#{path}"
         end
-        tag('img', :src => url, :alt => 'captcha') + hidden_captcha_key
       end
 
       def simple_captcha_field(options={})
-        html = {:autocomplete => 'off', :required => 'required'}
+        html = {:autocomplete => 'off', :autocorrect => 'off', :autocapitalize => 'off', :required => 'required'}
         html.merge!(options[:input_html] || {})
         html[:placeholder] = options[:placeholder] || I18n.t('simple_captcha.placeholder')
 
         if options[:object]
-          text_field(options[:object], :captcha, html.merge(:value => ''))
+          text_field(options[:object], :captcha, html.merge(:value => '')) +
+          hidden_field(options[:object], :captcha_key, {:value => options[:field_value], :id => simple_captch_hidden_field_id(options)})
         else
-          text_field_tag(:captcha, nil, html)
+          text_field_tag(:captcha, nil, html) +
+          hidden_field_tag(:captcha_key, options[:field_value], :id => simple_captch_hidden_field_id(options))
         end
+      end
+
+      def simple_captcha_refresh_button(options={})
+        html = {remote: true}
+        html.merge!(options[:refresh_button_html] || {})
+
+        text = options[:refresh_button_text] || I18n.t('simple_captcha.refresh_button_text', default: 'Refresh')
+
+        url = build_url(options, "/simple_captcha?id=#{simple_captcha_image_id(options)}")
+        link_to(text, url, html)
+      end
+
+      def simple_captcha_image_id(options={})
+        "simple_captcha-#{options[:field_value][0..10]}"
+      end
+
+      def simple_captch_hidden_field_id(image_id)
+        image_id = simple_captcha_image_id(image_id) if image_id.is_a?(Hash)
+        "simple-captcha-hidden-field-#{ image_id }"
       end
 
       def set_simple_captcha_data(key, options={})
@@ -99,6 +132,7 @@ module SimpleCaptcha #:nodoc
         key
       end
 
+
       def generate_simple_captcha_data(code)
         value = ''
         value << (65 + rand(26)).chr
@@ -108,11 +142,12 @@ module SimpleCaptcha #:nodoc
         return value
       end
 
-      def simple_captcha_key(key_name = nil)
+      def simple_captcha_key(key_name = nil, prequest = request)
+        local_session = prequest.try(:session) || session
         if key_name.nil?
-          session[:captcha] ||= SimpleCaptcha::Utils.generate_key(session[:id].to_s, 'captcha')
+          local_session[:captcha] ||= SimpleCaptcha::Utils.generate_key(local_session[:id].to_s, 'captcha')
         else
-          SimpleCaptcha::Utils.generate_key(session[:id].to_s, key_name)
+          SimpleCaptcha::Utils.generate_key(local_session[:id].to_s, key_name)
         end
       end
   end
